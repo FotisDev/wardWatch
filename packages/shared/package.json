@@ -1,0 +1,22 @@
+{
+  "name": "@wardwatch/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.50.0"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.50.0",
+    "typescript": "^5.8.0"
+  }
+}

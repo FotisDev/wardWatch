@@ -1,0 +1,25 @@
+node_modules
+.turbo
+.next
+out
+dist
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# env files (keep the examples)
+.env
+.env*.local
+!.env.example
+
+# supabase local state
+supabase/.branches
+supabase/.temp
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+npm-debug.log*
+pnpm-debug.log*
