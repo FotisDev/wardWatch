@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-/** A single set of vital signs, as sent by a monitor or the simulator. */
 export const vitalsInput = z.object({
   patient_id: z.string().uuid(),
   recorded_at: z.string().datetime().optional(),

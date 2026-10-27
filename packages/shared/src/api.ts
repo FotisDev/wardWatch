@@ -1,10 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { registerDevice, updateAlertStatus, type RegisterDevice, type UpdateAlertStatus } from "./schemas";
+import { updateAlertStatus, type UpdateAlertStatus } from "./schemas";
 
-/**
- * Client-agnostic data access. Web and mobile both pass in their own
- * authenticated Supabase client; row-level security does the authorisation.
- */
 export function createApi(supabase: SupabaseClient) {
   return {
     async me() {
@@ -41,15 +37,6 @@ export function createApi(supabase: SupabaseClient) {
       return data;
     },
 
-    async registerDevice(input: RegisterDevice) {
-      const body = registerDevice.parse(input);
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) throw new Error("Not signed in");
-      const { error } = await supabase
-        .from("device_tokens")
-        .upsert({ ...body, user_id: auth.user.id }, { onConflict: "user_id,token" });
-      if (error) throw error;
-    },
   };
 }
 

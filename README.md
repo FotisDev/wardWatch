@@ -1,53 +1,42 @@
 # WardWatch
 
-Ward monitoring and nurse alerting. Bedside vitals stream in; the database scores each reading with a simplified NEWS2 early-warning score and opens or escalates alerts. Nurses see alerts for their ward and acknowledge or resolve them.
+Live ward monitoring for nurses. Bedside vitals come in, each reading gets a NEWS2-style early warning score, and patients who score high get an alert that nurses can acknowledge and resolve.
 
-The backend is **API-first**: all logic lives in Supabase (Postgres triggers, RLS, RPC). The web app and the future mobile app are both just clients.
+Scoring, alerting and permissions all run in Postgres (Supabase triggers, RLS and an RPC), so the web app is a thin client.
 
-```
-wardwatch/
-  apps/web          Next.js dashboard (+ PWA later)
-  apps/simulator    Fake bedside monitors → inserts vitals
-  apps/mobile       Expo app (later)
-  packages/shared   Zod schemas, types, client-agnostic API (createApi)
-  supabase/         Migrations, seed data, config
-```
+## Structure
 
-## Setup
+- `apps/web`: Next.js dashboard
+- `apps/simulator`: fake bedside monitors that insert vitals
+- `packages/shared`: Zod schemas and a small API wrapper
+- `supabase`: migrations and seed data
 
-Requires Node 20+ and pnpm 9.
+## Getting started
+
+Needs Node 20+ and pnpm 9.
 
 ```bash
 pnpm install
-
-# Link to the hosted Supabase project (one-time)
 pnpm exec supabase login
-pnpm exec supabase link --project-ref gkkrxespyiyouqjrheys
-
-# Apply migrations to the hosted DB
-pnpm db:push
+pnpm exec supabase link --project-ref <your-project-ref>
+pnpm exec supabase db push --include-seed
 ```
 
-Env files (gitignored; copy from the `.env.example` next to each):
-
-| File | Needs |
-| --- | --- |
-| `apps/web/.env.local` | Project URL, publishable key |
-| `apps/simulator/.env` | Project URL, **secret** key (server-side only) |
-
-## Run
+Copy `.env.example` to `.env.local` in `apps/web` and to `.env` in `apps/simulator`, then fill in your project URL and keys. The simulator uses the secret key, so keep it out of the browser app.
 
 ```bash
-pnpm dev        # web on http://localhost:3000
-pnpm simulate   # stream vitals every 5 s
+pnpm dev        # http://localhost:3000
+pnpm simulate   # new readings every 5s
 ```
 
-## Data model
+Sign up, then make yourself an admin in the SQL editor:
 
-- `wards`, `beds`, `patients`: ward layout and admissions
-- `profiles`: one per auth user; `role` is `nurse | charge_nurse | admin`, plus `ward_id`
-- `vitals`: readings; a trigger fills in `score` and raises alerts
-- `alerts`: at most one active per patient; severity `medium` (one parameter in the red), `high` (score 5–6), `critical` (7+)
-- `device_tokens`: web push subscriptions and iOS/Android tokens
+```sql
+update public.profiles set role = 'admin' where id = '<your user id>';
+```
 
-Access: staff see only their ward (admins see everything). Only admins can change roles or ward assignments. Alerts change only through `set_alert_status(alert_id, status)`.
+## Roles
+
+Nurses and charge nurses see only their own ward. Admins see every ward and are the only ones who can change roles or ward assignments.
+
+Alerts are `medium` when a single vital is far out of range, `high` at a score of 5-6, and `critical` at 7 or above. Each patient has at most one active alert, and new readings escalate it.

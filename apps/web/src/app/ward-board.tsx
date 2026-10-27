@@ -75,7 +75,6 @@ export function WardBoard({
         },
       );
 
-    // Realtime applies RLS, so it needs the signed-in user's token before subscribing.
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) supabase.realtime.setAuth(data.session.access_token);
       channel.subscribe((status) => setLive(status === "SUBSCRIBED"));
@@ -116,7 +115,7 @@ export function WardBoard({
           <h2 className="text-lg font-semibold">{ward.name}</h2>
           <span className="flex items-center gap-2 text-xs text-neutral-500">
             <span className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500" : "bg-neutral-400"}`} />
-            {live ? "Live" : "Connecting…"}
+            {live ? "Live" : "Connecting..."}
           </span>
         </div>
 

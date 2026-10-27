@@ -11,7 +11,6 @@ export default async function Home({
   searchParams: Promise<{ ward?: string; code?: string }>;
 }) {
   const { ward: wardCode, code } = await searchParams;
-  // Confirmation links fall back to the site URL when /auth/callback isn't allow-listed.
   if (code) redirect(`/auth/callback?code=${encodeURIComponent(code)}`);
 
   const supabase = await createClient();
@@ -76,7 +75,6 @@ export default async function Home({
     .is("discharged_at", null);
   const patients = (patientRows ?? []) as unknown as Patient[];
 
-  // Latest reading per patient: pull a recent window, keep the first row seen for each.
   const latest: Record<string, Reading> = {};
   if (patients.length) {
     const { data: readings } = await supabase

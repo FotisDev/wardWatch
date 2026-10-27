@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Refreshes the Supabase auth cookie on every request. */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 

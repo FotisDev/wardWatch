@@ -33,7 +33,6 @@ export async function signUp(formData: FormData) {
     },
   });
   if (error) back({ error: error.message });
-  // No session means the project requires email confirmation first.
   if (!data.session) back({ message: "Check your email for a confirmation link." });
   redirect("/");
 }

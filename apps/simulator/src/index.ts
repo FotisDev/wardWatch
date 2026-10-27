@@ -1,12 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { vitalsInput, type VitalsInput } from "@wardwatch/shared";
 
-/**
- * Streams fake bedside-monitor readings into Supabase.
- * Each patient random-walks around a healthy baseline; now and then one
- * starts deteriorating for a while, which trips the DB's early-warning trigger.
- */
-
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SECRET_KEY;
 if (!url || !key) {
@@ -17,7 +11,6 @@ if (!url || !key) {
 const TICK_MS = Number(process.env.SIM_TICK_MS ?? 5000);
 const DETERIORATION_CHANCE = Number(process.env.SIM_DETERIORATION_CHANCE ?? 0.03);
 
-// The secret key bypasses RLS, so this must only ever run server-side.
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 type Vitals = Omit<VitalsInput, "patient_id" | "recorded_at" | "source">;
@@ -27,7 +20,6 @@ const sick: Vitals = { heart_rate: 135, resp_rate: 27, spo2: 88, systolic_bp: 88
 
 interface PatientState {
   current: Vitals;
-  /** Ticks left in a deterioration episode; 0 = stable. */
   deteriorating: number;
 }
 
@@ -81,7 +73,7 @@ async function main() {
 
     const worsening = patients.filter((p) => states.get(p.id)!.deteriorating > 0).map((p) => p.display_name);
     console.log(`${new Date().toLocaleTimeString()}  ${rows.length} readings` +
-      (worsening.length ? `  ⚠ deteriorating: ${worsening.join(", ")}` : ""));
+      (worsening.length ? `  deteriorating: ${worsening.join(", ")}` : ""));
   };
 
   await tick();

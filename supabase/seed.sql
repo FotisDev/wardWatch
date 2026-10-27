@@ -1,4 +1,3 @@
--- Demo data (fictional patients). Runs on `supabase db reset`.
 insert into public.wards (code, name) values
   ('CARD', 'Cardiology'),
   ('GMED', 'General Medicine');

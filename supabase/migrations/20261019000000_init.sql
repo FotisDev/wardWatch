@@ -1,12 +1,8 @@
--- WardWatch initial schema: wards, staff roles, patients, vitals, alerts, push devices.
-
--- ─── Enums ──────────────────────────────────────────────────────────────────
 create type public.app_role        as enum ('nurse', 'charge_nurse', 'admin');
 create type public.alert_severity  as enum ('low', 'medium', 'high', 'critical');
 create type public.alert_status    as enum ('open', 'acknowledged', 'resolved');
 create type public.device_platform as enum ('web', 'ios', 'android');
 
--- ─── Tables ─────────────────────────────────────────────────────────────────
 create table public.wards (
   id         uuid primary key default gen_random_uuid(),
   code       text not null unique,
@@ -48,7 +44,7 @@ create table public.vitals (
   spo2        smallint not null check (spo2 between 0 and 100),
   systolic_bp smallint not null check (systolic_bp between 0 and 300),
   temperature numeric(4,1) not null check (temperature between 25 and 45),
-  score       smallint,          -- filled by trigger
+  score       smallint,
   source      text not null default 'simulator'
 );
 create index vitals_patient_time_idx on public.vitals (patient_id, recorded_at desc);
@@ -69,7 +65,6 @@ create table public.alerts (
   resolved_at     timestamptz
 );
 create index alerts_ward_status_idx on public.alerts (ward_id, status, created_at desc);
--- At most one active alert per patient; new readings escalate it instead of piling up.
 create unique index alerts_one_active_per_patient
   on public.alerts (patient_id) where status <> 'resolved';
 
@@ -78,12 +73,11 @@ create table public.device_tokens (
   user_id      uuid not null references public.profiles (id) on delete cascade,
   platform     public.device_platform not null,
   token        text not null,
-  subscription jsonb,             -- full PushSubscription for web push
+  subscription jsonb,
   created_at   timestamptz not null default now(),
   unique (user_id, token)
 );
 
--- ─── Helpers (security definer so RLS policies can call them cheaply) ───────
 create function public.current_user_role()
 returns public.app_role
 language sql stable security definer set search_path = ''
@@ -99,7 +93,6 @@ as $$
   )
 $$;
 
--- New auth user → profile row.
 create function public.handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -114,7 +107,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Only admins (or the service role, where auth.uid() is null) may change role/ward.
 create function public.guard_profile_privileges()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -132,7 +124,6 @@ create trigger profiles_guard_privileges
   before update on public.profiles
   for each row execute function public.guard_profile_privileges();
 
--- ─── Early-warning scoring (simplified NEWS2) ───────────────────────────────
 create function public.early_warning_score(
   rr int, spo2 int, sbp int, hr int, temp numeric,
   out total int, out max_single int
@@ -151,7 +142,6 @@ begin
   select sum(x), max(x) into total, max_single from unnest(s) as x;
 end $$;
 
--- On each reading: store the score, then open or escalate the patient's alert.
 create function public.evaluate_vitals()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -198,7 +188,6 @@ create trigger vitals_evaluate
   before insert on public.vitals
   for each row execute function public.evaluate_vitals();
 
--- Point the active alert at the reading that raised/escalated it (needs the id, so after insert).
 create function public.link_alert_vitals()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -214,7 +203,6 @@ create trigger vitals_link_alert
   after insert on public.vitals
   for each row execute function public.link_alert_vitals();
 
--- Acknowledge / resolve, callable by any client with ward access.
 create function public.set_alert_status(p_alert_id uuid, p_status public.alert_status)
 returns public.alerts
 language plpgsql security definer set search_path = ''
@@ -242,7 +230,6 @@ end $$;
 revoke execute on function public.set_alert_status(uuid, public.alert_status) from public, anon;
 grant  execute on function public.set_alert_status(uuid, public.alert_status) to authenticated;
 
--- ─── Row-level security ─────────────────────────────────────────────────────
 alter table public.wards         enable row level security;
 alter table public.profiles      enable row level security;
 alter table public.beds          enable row level security;
@@ -285,11 +272,9 @@ create policy "ward staff read vitals" on public.vitals
 
 create policy "ward staff read alerts" on public.alerts
   for select to authenticated using (public.can_access_ward(ward_id));
--- Alert changes go through set_alert_status(); inserts come from the vitals trigger.
 
 create policy "own devices" on public.device_tokens
   for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
--- ─── Realtime ───────────────────────────────────────────────────────────────
 alter publication supabase_realtime add table public.alerts, public.vitals;
