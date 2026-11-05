@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { updateAlertStatus, type UpdateAlertStatus } from "./schemas";
+import { registerDevice, updateAlertStatus, type RegisterDevice, type UpdateAlertStatus } from "./schemas";
 
 export function createApi(supabase: SupabaseClient) {
   return {
@@ -37,6 +37,20 @@ export function createApi(supabase: SupabaseClient) {
       return data;
     },
 
+    async registerDevice(input: RegisterDevice) {
+      const body = registerDevice.parse(input);
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("device_tokens")
+        .upsert({ ...body, user_id: auth.user.id }, { onConflict: "user_id,token" });
+      if (error) throw error;
+    },
+
+    async unregisterDevice(token: string) {
+      const { error } = await supabase.from("device_tokens").delete().eq("token", token);
+      if (error) throw error;
+    },
   };
 }
 

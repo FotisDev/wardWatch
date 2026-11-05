@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createApi } from "@wardwatch/shared";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./login/actions";
+import { PushToggle } from "./push-toggle";
 import { WardBoard, type Patient, type Reading } from "./ward-board";
 
 export default async function Home({
@@ -45,6 +46,7 @@ export default async function Home({
               {w.name}
             </Link>
           ))}
+        <PushToggle />
         <form action={signOut}>
           <button className="rounded-md px-3 py-1.5 text-sm text-neutral-500 hover:text-foreground">Sign out</button>
         </form>

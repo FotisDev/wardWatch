@@ -13,3 +13,6 @@ additional_redirect_urls = ["http://localhost:3000/auth/callback"]
 
 [auth.email]
 enable_confirmations = false
+
+[functions.push-alert]
+verify_jwt = false

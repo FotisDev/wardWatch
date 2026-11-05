@@ -8,3 +8,6 @@ export type AlertSeverity = z.infer<typeof alertSeverity>;
 
 export const alertStatus = z.enum(["open", "acknowledged", "resolved"]);
 export type AlertStatus = z.infer<typeof alertStatus>;
+
+export const devicePlatform = z.enum(["web", "ios", "android"]);
+export type DevicePlatform = z.infer<typeof devicePlatform>;
