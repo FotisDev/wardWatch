@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { registerDevice, updateAlertStatus, type RegisterDevice, type UpdateAlertStatus } from "./schemas";
+import type { AuditEntry } from "./audit";
+import type { ScoreSummary } from "./handover";
+import { registerDevice, updateAlertStatus, type Alert, type RegisterDevice, type UpdateAlertStatus } from "./schemas";
 
 export function createApi(supabase: SupabaseClient) {
   return {
@@ -35,6 +37,37 @@ export function createApi(supabase: SupabaseClient) {
       });
       if (error) throw error;
       return data;
+    },
+
+    async alertsForShift(wardId: string, since: Date) {
+      const { data, error } = await supabase
+        .from("alerts")
+        .select("*")
+        .eq("ward_id", wardId)
+        .or(`created_at.gte.${since.toISOString()},status.neq.resolved`)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Alert[];
+    },
+
+    async scoreSummary(wardId: string, since: Date) {
+      const { data, error } = await supabase.rpc("patient_score_summary", {
+        p_ward_id: wardId,
+        p_since: since.toISOString(),
+      });
+      if (error) throw error;
+      return data as ScoreSummary[];
+    },
+
+    async auditLog(wardId: string, limit = 100) {
+      const { data, error } = await supabase
+        .from("audit_log")
+        .select("*")
+        .eq("ward_id", wardId)
+        .order("at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data as AuditEntry[];
     },
 
     async registerDevice(input: RegisterDevice) {

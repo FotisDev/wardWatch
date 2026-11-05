@@ -1,0 +1,22 @@
+# pnpm docker:up  (reads build args from apps/web/.env.local)
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?set in apps/web/.env.local}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?set in apps/web/.env.local}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    env_file: apps/web/.env.local
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  simulator:
+    build:
+      context: .
+      dockerfile: apps/simulator/Dockerfile
+    env_file: apps/simulator/.env
+    restart: unless-stopped
+    profiles: [simulator]

@@ -2,13 +2,15 @@
 
 Live ward monitoring for nurses. Bedside vitals come in, each reading gets a NEWS2-style early warning score, and patients who score high get an alert that nurses can acknowledge and resolve.
 
-Scoring, alerting and permissions all run in Postgres (Supabase triggers, RLS and an RPC), so the web app is a thin client.
+Scoring, alerting, permissions and the audit trail all run in Postgres (Supabase triggers, RLS and RPCs), so the web app is a thin client.
+
+Pages: a live **board** of beds and active alerts, a **shift handover** summary (last 8 or 12 hours, copyable as text or printable), and an append-only **audit log**.
 
 ## Structure
 
 - `apps/web`: Next.js dashboard
 - `apps/simulator`: fake bedside monitors that insert vitals
-- `packages/shared`: Zod schemas and a small API wrapper
+- `packages/shared`: Zod schemas, a small API wrapper and the handover logic, with unit tests
 - `supabase`: migrations, seed data and the `push-alert` edge function
 
 ## Getting started
@@ -55,6 +57,32 @@ select vault.create_secret('<PUSH_WEBHOOK_SECRET from supabase/functions/.env>',
 ```
 
 Until both secrets exist the trigger does nothing, so local setups without push still work. On iPhone, push only works after "Add to Home Screen".
+
+## Audit log
+
+`audit_log` is written only by triggers on `alerts`, `patients` and `profiles`: alerts raised, escalated, acknowledged and resolved; admissions, discharges and bed moves; role and ward changes. Nobody can insert, update, delete or truncate it directly, including the service role. It has no foreign keys, so the history survives even if the rows it describes are deleted. Ward staff see their ward's entries and admins see all of them.
+
+## Tests
+
+```bash
+pnpm test                      # Vitest: handover, audit text, schemas, API validation
+pnpm build && pnpm test:e2e    # Playwright smoke tests on desktop and mobile viewports
+```
+
+The first e2e run needs `pnpm --filter @wardwatch/web exec playwright install chromium`. The e2e tests cover only signed-out behaviour and the PWA files, so they run without a database.
+
+## CI
+
+GitHub Actions runs typecheck, lint, unit tests and build, then Playwright against that build. It also builds both Docker images and checks that the web container serves the login page. CI uses placeholder Supabase values and never touches the real project.
+
+## Docker
+
+```bash
+pnpm docker:up     # web on http://localhost:3000 plus the simulator
+pnpm docker:down
+```
+
+Build args come from `apps/web/.env.local`, and the simulator reads `apps/simulator/.env`. The web image uses Next.js standalone output and runs as a non-root user.
 
 ## Roles
 

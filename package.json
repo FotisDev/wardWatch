@@ -10,12 +10,16 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter @wardwatch/web test:e2e",
     "simulate": "pnpm --filter @wardwatch/simulator start",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:push": "supabase db push",
-    "db:types": "supabase gen types typescript --linked --schema public > packages/shared/src/database.types.ts"
+    "db:types": "supabase gen types typescript --linked --schema public > packages/shared/src/database.types.ts",
+    "docker:up": "docker compose --env-file apps/web/.env.local --profile simulator up --build",
+    "docker:down": "docker compose --env-file apps/web/.env.local --profile simulator down"
   },
   "devDependencies": {
     "supabase": "^2.40.0",
